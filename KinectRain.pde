@@ -21,7 +21,7 @@ PVector com = new PVector();
 PVector com2d = new PVector();                                   
 
 PImage userImage;
-PImage rainImage = new PImage(640, 480);
+//PImage rainImage = new PImage(640, 480);
 
 void setup()
 {
@@ -63,7 +63,16 @@ void draw()
   //image(context.depthImage(),0,0);
   userImage = context.userImage();
   userImage.loadPixels();
-  image(userImage,0,0);
+  
+  // Filter out background
+  for (int i = 0; i < userImage.pixels.length; i++) {
+    color col = userImage.pixels[i];
+    if ((col & 0xff) == (col >> 8 & 0xff) && (col & 0xff) == (col >> 16 & 0xff)) {
+      userImage.pixels[i] = 0;
+    } 
+  }
+
+  image(userImage, 0, 0, width, height);
   
   // draw the skeleton if it's available
   int[] userList = context.getUsers();
@@ -166,7 +175,7 @@ HashMap drops = new HashMap();
 
 void setupRain() {
   for (int i = 0; i < numDrops; i++) {
-    new Rain();
+    new Drop();
   }
 }
 
@@ -175,7 +184,7 @@ void updateRain(){
   
   Object[] arr = drops.values().toArray();
   for (int i = 0; i < arr.length; i++) {
-    ((Rain)arr[i]).update();
+    ((Drop)arr[i]).update();
   }
 }
 
@@ -185,11 +194,11 @@ void drawRain(){
   Iterator i = drops.entrySet().iterator();  // Get an iterator
   while (i.hasNext()) {
     Map.Entry e = (Map.Entry)i.next();
-    ((Rain)e.getValue()).draw();
+    ((Drop)e.getValue()).draw();
   }  
 }
 
-class Rain {
+class Drop {
   long id;
   boolean isDroplet = false;
   int lifetime = 10 + (int)random(20);
@@ -199,12 +208,12 @@ class Rain {
   PVector velocity = new PVector(random(10) / 10, 17 + (random(10) / 10));
   color col = color(100 + random(50), 200 + random(50), 255, 200 + random(50));
 
-  Rain() {
+  Drop() {
     dropCounter++;
     id = dropCounter;
     drops.put(id, this);
   }
-  Rain(float _x, float _y, boolean _isDroplet) {
+  Drop(float _x, float _y, boolean _isDroplet) {
     dropCounter++;
     id = dropCounter;
     
@@ -260,12 +269,12 @@ class Rain {
   }
   
   void createDroplets() {
-    Rain droplet = new Rain(x, y, true);
+    Drop droplet = new Drop(x, y, true);
     droplet.size = 1;
     droplet.velocity.x = random(3);
     droplet.velocity.y = -random(3);
     
-    droplet = new Rain(x, y, true);
+    droplet = new Drop(x, y, true);
     droplet.size = 1;
     droplet.velocity.x = -random(3);
     droplet.velocity.y = -random(3);
