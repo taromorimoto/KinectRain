@@ -192,12 +192,15 @@ void drawRain(){
 class Drop {
   long id;
   boolean isDroplet = false;
+  boolean dieAfterDrawing = false;
   int lifetime = (int)random(10, 30);
-  int size = (int)random(1, 3);
+  int size = (int)random(3, 15);
   float x = random(600);
   float y = random(-height);
-  PVector velocity = new PVector(random(10) / 10, 17 + (random(10) / 10));
-  color col = color(100 + random(50), 200 + random(50), 255, 200 + random(50));
+  float prevX = x;
+  float prevY = y;
+  PVector velocity = new PVector(random(1, 10), random(10, 30));
+  color col = color(255, 255, 255, random(50, 255));
 
   Drop() {
     dropCounter++;
@@ -221,12 +224,18 @@ class Drop {
       ellipse(x, y, size, size);
     } else {
       stroke(col);
-      strokeWeight(size);
-      line(x, y, x, y - size*1.5);
+      strokeWeight(1);
+      //line(x, y, x - velocity.x, y - size);
+      line(x, y, prevX, prevY);
+    }
+    if (dieAfterDrawing) {
+      die();
     }
   }
   
   void update() {
+    prevX = x;
+    prevY = y;
     y += velocity.y;
     x += velocity.x;
     
@@ -237,9 +246,9 @@ class Drop {
         return;
       }
       // Update face gravity
-      velocity.x *= 0.9;
+      velocity.x *= 0.8;
       if (velocity.y < 10) {
-        velocity.y += 0.5;
+        velocity.y += 1;
       }
     }
 
@@ -254,7 +263,7 @@ class Drop {
     color c = userImage.pixels[(int)x + (int)y*width];
     if (!isDroplet && (blue(c) != red(c) || red(c) != green(c))) {
       createDroplets();      
-      die();
+      dieAfterDrawing = true;
       return;
     }
   }
@@ -275,8 +284,9 @@ class Drop {
     if (isDroplet) {
       drops.remove(id);
     } else {
-      x = random(600);
-      y = random(-10);
+      prevX = x = random(600);
+      prevY = y = random(-10);
     }
+    dieAfterDrawing = false;
   }
 }
