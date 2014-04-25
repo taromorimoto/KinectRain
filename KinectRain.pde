@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.Map;
 import SimpleOpenNI.*;
 
-
+//ffffff
 SimpleOpenNI  context;
 color[]       userClr = new color[]{ color(255,0,0),
                                      color(0,255,0),
