@@ -7,6 +7,13 @@
 import java.util.Iterator;
 import java.util.Map;
 import SimpleOpenNI.*;
+import ddf.minim.*;
+
+Minim minim;
+AudioPlayer player;
+AudioSnippet backgroundSound;
+int startPoint;
+int endPoint;
 
 
 SimpleOpenNI  context;
@@ -32,6 +39,8 @@ void setup()
   pg = createGraphics(width, height);
   //img = loadImage("helsinkiblackandwhite.jpg");
   
+  setupAudio();
+  
   context = new SimpleOpenNI(this);
   if (context.isInit() == false) {
      println("Can't init SimpleOpenNI, maybe the camera is not connected!"); 
@@ -49,6 +58,22 @@ void setup()
   setupRain();
 }
 
+void setupAudio() {
+  minim = new Minim(this);
+  
+  backgroundSound = minim.loadSnippet("STE-004_01.wav");
+  startPoint = 500;
+  endPoint = 1000;
+  backgroundSound.setLoopPoints(startPoint, endPoint);
+  backgroundSound.loop(999);
+  
+
+  player = minim.loadFile("STE-006_01.wav");
+  player.loop(999);
+  player.mute();
+}
+
+
 void draw() {
   // update the cam
   //image(img, 0, 0);
@@ -56,6 +81,11 @@ void draw() {
     
   userMap = context.userMap();
   
+  if (context.getNumberOfUsers() > 0) {
+     playWhenUserEnters();    
+  } else {
+     playWhenUserExits();    
+  }
   // Filter out background
   /*
   if (context.getNumberOfUsers() > 0) {
@@ -169,6 +199,15 @@ void keyPressed()
   }
 }  
 
+void playWhenUserEnters() {
+  player.unmute();
+  backgroundSound.setGain(-10.0);
+}
+
+void playWhenUserExits() {
+  backgroundSound.setGain(10.0);
+  player.mute();
+}
 
 long dropCounter = 0;
 int numDrops = 2000;
