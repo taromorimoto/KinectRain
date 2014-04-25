@@ -20,26 +20,17 @@ color[]       userClr = new color[]{ color(255,0,0),
 PVector com = new PVector();                                   
 PVector com2d = new PVector();                                   
 
-<<<<<<< HEAD
 int[] userMap;
-=======
 PImage img;
-
->>>>>>> FETCH_HEAD
 PImage userImage = new PImage(640, 480);
 PGraphics pg;
 
 void setup()
 {
-<<<<<<< HEAD
   size(1280, 960);
   //size(640, 480);
   pg = createGraphics(width, height);
-=======
-  //size(1024, 768);
-  size(640, 480);
-  img = loadImage("helsinkiblackandwhite.jpg");
->>>>>>> FETCH_HEAD
+  //img = loadImage("helsinkiblackandwhite.jpg");
   
   context = new SimpleOpenNI(this);
   if (context.isInit() == false) {
@@ -60,7 +51,7 @@ void setup()
 
 void draw() {
   // update the cam
-  image(img, 0, 0);
+  //image(img, 0, 0);
   context.update();
     
   userMap = context.userMap();
@@ -180,7 +171,7 @@ void keyPressed()
 
 
 long dropCounter = 0;
-int numDrops = 1000;
+int numDrops = 2000;
 HashMap drops = new HashMap();
 
 void setupRain() {
@@ -201,7 +192,7 @@ void updateRain(){
 void drawRain(){
   pg.beginDraw();
   pg.noStroke();
-  //pg.background(0);
+  pg.background(0);
   pg.fill(0, 150);
   pg.rect(0, 0, width, height);
   
@@ -218,8 +209,8 @@ void drawRain(){
 class Drop {
   long id;
   boolean isDroplet = false;
-  int lifetime = (int)random(10, 30);
-<<<<<<< HEAD
+  boolean dieAfterDrawing = false;
+  int lifetime = (int)random(5, 15);
   int size = (int)random(3*2, 15*2);
   float x = random(width);
   float y = random(-height);
@@ -227,13 +218,6 @@ class Drop {
   float prevY = y;
   PVector velocity = new PVector(random(1*2, 6*2), random(10*2, 30*2));
   color col = color(255, 255, 255, random(50, 200));
-=======
-  int size = (int)random(1, 3);
-  float x = random(600);
-  float y = random(-height);
-  PVector velocity = new PVector(random(10) / 10, 17 + (random(10) / 10));
-  color col = color(100 + random(50), 200 + random(50), 255, 200 + random(50));
->>>>>>> FETCH_HEAD
 
   Drop() {
     dropCounter++;
@@ -256,7 +240,6 @@ class Drop {
       pg.noStroke();
       pg.ellipse(x, y, size, size);
     } else {
-<<<<<<< HEAD
       pg.stroke(col);
       pg.strokeWeight(1);
       //line(x, y, x - velocity.x, y - size);
@@ -264,15 +247,12 @@ class Drop {
     }
     if (dieAfterDrawing) {
       die();
-=======
-      stroke(col);
-      strokeWeight(size);
-      line(x, y, x, y - size*1.5);
->>>>>>> FETCH_HEAD
     }
   }
   
   void update() {
+    prevX = x;
+    prevY = y;
     y += velocity.y;
     x += velocity.x;
     
@@ -283,9 +263,9 @@ class Drop {
         return;
       }
       // Update face gravity
-      velocity.x *= 0.9;
+      velocity.x *= 0.8;
       if (velocity.y < 10) {
-        velocity.y += 0.5;
+        velocity.y += 1;
       }
     }
 
@@ -301,40 +281,34 @@ class Drop {
     //if (!isDroplet && (blue(c) != red(c) || red(c) != green(c))) {
     if (!isDroplet && userMap[((int)x >> 1) + ((int)y >> 1) * 640] != 0) {
       createDroplets();      
-      die();
+      dieAfterDrawing = true;
       return;
     }
   }
   
   void createDroplets() {
+    createDroplet();
+    createDroplet();
+    createDroplet();
+    createDroplet();
+    createDroplet();
+  }
+  
+  void createDroplet() {
     Drop droplet = new Drop(x, y, true);
-    droplet.size = 1;
-    droplet.velocity.x = random(3);
-    droplet.velocity.y = -random(6);
-    
-    droplet = new Drop(x, y, true);
-    droplet.size = 1;
-    droplet.velocity.x = -random(3);
-    droplet.velocity.y = -random(6);
-    
-    droplet = new Drop(x, y, true);
-    droplet.size = 1;
-    droplet.velocity.x = random(-1, 1);
-    droplet.velocity.y = -random(6);
-    droplet.lifetime = 10;
+    droplet.size = (int)random(1, 3);
+    droplet.velocity.x = random(-4, 4);
+    droplet.velocity.y = random(5);
+    droplet.lifetime = (int)random(5, 10);
   }
   
   void die() {
     if (isDroplet) {
       drops.remove(id);
     } else {
-<<<<<<< HEAD
       prevX = x = random(width);
       prevY = y = random(-10);
-=======
-      x = random(600);
-      y = random(-10);
->>>>>>> FETCH_HEAD
+      dieAfterDrawing = false;
     }
   }
 }
