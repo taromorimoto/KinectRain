@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.Map;
 import SimpleOpenNI.*;
 
-//ffffff
+
 SimpleOpenNI  context;
 color[]       userClr = new color[]{ color(255,0,0),
                                      color(0,255,0),
@@ -20,13 +20,15 @@ color[]       userClr = new color[]{ color(255,0,0),
 PVector com = new PVector();                                   
 PVector com2d = new PVector();                                   
 
+int[] userMap;
 PImage userImage = new PImage(640, 480);
-//PImage rainImage = new PImage(640, 480);
+PGraphics pg;
 
 void setup()
 {
-  //size(1024, 768);
-  size(640, 480);
+  size(1280, 960);
+  //size(640, 480);
+  pg = createGraphics(width, height);
   
   context = new SimpleOpenNI(this);
   if (context.isInit() == false) {
@@ -49,9 +51,12 @@ void draw() {
   // update the cam
   context.update();
     
+  userMap = context.userMap();
+  
   // Filter out background
+  /*
   if (context.getNumberOfUsers() > 0) {
-    int[] userMap = context.userMap();
+    userMap = context.userMap();
     loadPixels();
     for (int i = 0; i < userMap.length; i++) {
       if (userMap[i] != 0) {
@@ -62,10 +67,12 @@ void draw() {
     }
     userImage.updatePixels();
   }
+  */
 
-  image(userImage, 0, 0, width, height);
+  //image(userImage, 0, 0, width, height);
   
   // draw the skeleton if it's available
+  /*
   int[] userList = context.getUsers();
   for (int i=0;i<userList.length;i++) {
     if (context.isTrackingSkeleton(userList[i])) {
@@ -89,7 +96,7 @@ void draw() {
       fill(0,255,100);
       text(Integer.toString(userList[i]),com2d.x,com2d.y);
     }
-  }
+  }*/
   
   updateRain();
   drawRain();
@@ -133,9 +140,9 @@ void drawSkeleton(int userId)
 void onNewUser(SimpleOpenNI curContext, int userId)
 {
   println("onNewUser - userId: " + userId);
-  println("\tstart tracking skeleton");
+  //println("\tstart tracking skeleton");
   
-  curContext.startTrackingSkeleton(userId);
+  //curContext.startTrackingSkeleton(userId);
 }
 
 void onLostUser(SimpleOpenNI curContext, int userId)
@@ -180,13 +187,20 @@ void updateRain(){
 }
 
 void drawRain(){
-  noStroke();
+  pg.beginDraw();
+  pg.noStroke();
+  //pg.background(0);
+  pg.fill(0, 150);
+  pg.rect(0, 0, width, height);
   
   Iterator i = drops.entrySet().iterator();  // Get an iterator
   while (i.hasNext()) {
     Map.Entry e = (Map.Entry)i.next();
     ((Drop)e.getValue()).draw();
-  }  
+  }
+  pg.endDraw();
+  //image(pg, 0, 0, width, height);
+  image(pg, 0, 0);
 }
 
 class Drop {
@@ -194,13 +208,13 @@ class Drop {
   boolean isDroplet = false;
   boolean dieAfterDrawing = false;
   int lifetime = (int)random(10, 30);
-  int size = (int)random(3, 15);
-  float x = random(600);
+  int size = (int)random(3*2, 15*2);
+  float x = random(width);
   float y = random(-height);
   float prevX = x;
   float prevY = y;
-  PVector velocity = new PVector(random(1, 10), random(10, 30));
-  color col = color(255, 255, 255, random(50, 255));
+  PVector velocity = new PVector(random(1*2, 6*2), random(10*2, 30*2));
+  color col = color(255, 255, 255, random(50, 200));
 
   Drop() {
     dropCounter++;
@@ -218,15 +232,15 @@ class Drop {
   }
 
   void draw() {
-    fill(col);
+    pg.fill(col);
     if (isDroplet) {
-      noStroke();
-      ellipse(x, y, size, size);
+      pg.noStroke();
+      pg.ellipse(x, y, size, size);
     } else {
-      stroke(col);
-      strokeWeight(1);
+      pg.stroke(col);
+      pg.strokeWeight(1);
       //line(x, y, x - velocity.x, y - size);
-      line(x, y, prevX, prevY);
+      pg.line(x, y, prevX, prevY);
     }
     if (dieAfterDrawing) {
       die();
@@ -260,8 +274,9 @@ class Drop {
     }
     
     // Check impact with silhouette
-    color c = userImage.pixels[(int)x + (int)y*width];
-    if (!isDroplet && (blue(c) != red(c) || red(c) != green(c))) {
+    //color c = userImage.pixels[(int)x + (int)y * w];
+    //if (!isDroplet && (blue(c) != red(c) || red(c) != green(c))) {
+    if (!isDroplet && userMap[((int)x >> 1) + ((int)y >> 1) * 640] != 0) {
       createDroplets();      
       dieAfterDrawing = true;
       return;
@@ -272,19 +287,25 @@ class Drop {
     Drop droplet = new Drop(x, y, true);
     droplet.size = 1;
     droplet.velocity.x = random(3);
-    droplet.velocity.y = -random(3);
+    droplet.velocity.y = -random(6);
     
     droplet = new Drop(x, y, true);
     droplet.size = 1;
     droplet.velocity.x = -random(3);
-    droplet.velocity.y = -random(3);
+    droplet.velocity.y = -random(6);
+    
+    droplet = new Drop(x, y, true);
+    droplet.size = 1;
+    droplet.velocity.x = random(-1, 1);
+    droplet.velocity.y = -random(6);
+    droplet.lifetime = 10;
   }
   
   void die() {
     if (isDroplet) {
       drops.remove(id);
     } else {
-      prevX = x = random(600);
+      prevX = x = random(width);
       prevY = y = random(-10);
     }
     dieAfterDrawing = false;
