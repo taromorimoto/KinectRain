@@ -20,7 +20,7 @@ color[]       userClr = new color[]{ color(255,0,0),
 PVector com = new PVector();                                   
 PVector com2d = new PVector();                                   
 
-PImage userImage;
+PImage userImage = new PImage(640, 480);
 //PImage rainImage = new PImage(640, 480);
 
 void setup()
@@ -36,40 +36,31 @@ void setup()
   }
   
   context.setMirror(true);
-  
-  // enable depthMap generation 
   context.enableDepth();
-   
-  // enable skeleton generation for all joints
   context.enableUser();
  
-  background(200,0,0);
-
-  stroke(0,0,255);
-  strokeWeight(3);
+  background(0);
   smooth();  
   
   setupRain();
 }
 
-
-
-void draw()
-{
+void draw() {
   // update the cam
   context.update();
-  
-  // draw depthImageMap
-  //image(context.depthImage(),0,0);
-  userImage = context.userImage();
-  userImage.loadPixels();
-  
+    
   // Filter out background
-  for (int i = 0; i < userImage.pixels.length; i++) {
-    color col = userImage.pixels[i];
-    if ((col & 0xff) == (col >> 8 & 0xff) && (col & 0xff) == (col >> 16 & 0xff)) {
-      userImage.pixels[i] = 0;
-    } 
+  if (context.getNumberOfUsers() > 0) {
+    int[] userMap = context.userMap();
+    loadPixels();
+    for (int i = 0; i < userMap.length; i++) {
+      if (userMap[i] != 0) {
+        userImage.pixels[i] = userClr[userMap[i]];
+      } else {
+        userImage.pixels[i] = 0;
+      } 
+    }
+    userImage.updatePixels();
   }
 
   image(userImage, 0, 0, width, height);
@@ -201,8 +192,8 @@ void drawRain(){
 class Drop {
   long id;
   boolean isDroplet = false;
-  int lifetime = 10 + (int)random(20);
-  int size = 1 + (int)random(2);
+  int lifetime = (int)random(10, 30);
+  int size = (int)random(1, 3);
   float x = random(600);
   float y = random(-height);
   PVector velocity = new PVector(random(10) / 10, 17 + (random(10) / 10));
