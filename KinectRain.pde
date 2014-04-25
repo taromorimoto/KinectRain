@@ -20,6 +20,8 @@ color[]       userClr = new color[]{ color(255,0,0),
 PVector com = new PVector();                                   
 PVector com2d = new PVector();                                   
 
+PImage img;
+
 PImage userImage = new PImage(640, 480);
 //PImage rainImage = new PImage(640, 480);
 
@@ -27,6 +29,7 @@ void setup()
 {
   //size(1024, 768);
   size(640, 480);
+  img = loadImage("helsinkiblackandwhite.jpg");
   
   context = new SimpleOpenNI(this);
   if (context.isInit() == false) {
@@ -47,6 +50,7 @@ void setup()
 
 void draw() {
   // update the cam
+  image(img, 0, 0);
   context.update();
     
   // Filter out background
@@ -192,15 +196,12 @@ void drawRain(){
 class Drop {
   long id;
   boolean isDroplet = false;
-  boolean dieAfterDrawing = false;
   int lifetime = (int)random(10, 30);
-  int size = (int)random(3, 15);
+  int size = (int)random(1, 3);
   float x = random(600);
   float y = random(-height);
-  float prevX = x;
-  float prevY = y;
-  PVector velocity = new PVector(random(1, 10), random(10, 30));
-  color col = color(255, 255, 255, random(50, 255));
+  PVector velocity = new PVector(random(10) / 10, 17 + (random(10) / 10));
+  color col = color(100 + random(50), 200 + random(50), 255, 200 + random(50));
 
   Drop() {
     dropCounter++;
@@ -224,18 +225,12 @@ class Drop {
       ellipse(x, y, size, size);
     } else {
       stroke(col);
-      strokeWeight(1);
-      //line(x, y, x - velocity.x, y - size);
-      line(x, y, prevX, prevY);
-    }
-    if (dieAfterDrawing) {
-      die();
+      strokeWeight(size);
+      line(x, y, x, y - size*1.5);
     }
   }
   
   void update() {
-    prevX = x;
-    prevY = y;
     y += velocity.y;
     x += velocity.x;
     
@@ -246,9 +241,9 @@ class Drop {
         return;
       }
       // Update face gravity
-      velocity.x *= 0.8;
+      velocity.x *= 0.9;
       if (velocity.y < 10) {
-        velocity.y += 1;
+        velocity.y += 0.5;
       }
     }
 
@@ -263,7 +258,7 @@ class Drop {
     color c = userImage.pixels[(int)x + (int)y*width];
     if (!isDroplet && (blue(c) != red(c) || red(c) != green(c))) {
       createDroplets();      
-      dieAfterDrawing = true;
+      die();
       return;
     }
   }
@@ -284,9 +279,8 @@ class Drop {
     if (isDroplet) {
       drops.remove(id);
     } else {
-      prevX = x = random(600);
-      prevY = y = random(-10);
+      x = random(600);
+      y = random(-10);
     }
-    dieAfterDrawing = false;
   }
 }
