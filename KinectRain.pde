@@ -10,7 +10,7 @@ import SimpleOpenNI.*;
 import ddf.minim.*;
 
 Minim minim;
-AudioPlayer player;
+AudioPlayer underTheRainSound;
 AudioSnippet backgroundSound;
 int startPoint;
 int endPoint;
@@ -31,6 +31,7 @@ int[] userMap;
 PImage img;
 PImage userImage = new PImage(640, 480);
 PGraphics pg;
+int dropHitCount = 0;
 
 void setup()
 {
@@ -60,19 +61,43 @@ void setup()
 
 void setupAudio() {
   minim = new Minim(this);
-  
-  backgroundSound = minim.loadSnippet("STE-004_01.wav");
+
   startPoint = 500;
   endPoint = 1000;
+  
+  backgroundSound = minim.loadSnippet("STE-006_01.wav");
   backgroundSound.setLoopPoints(startPoint, endPoint);
   backgroundSound.loop(999);
-  
+  backgroundSound.setGain(10);
 
-  player = minim.loadFile("STE-006_01.wav");
-  player.loop(999);
-  player.mute();
+  underTheRainSound = minim.loadFile("STE-004_01.wav");
+  backgroundSound.setLoopPoints(startPoint, endPoint);
+  underTheRainSound.loop(999);
+  //underTheRainSound.mute();
+  underTheRainSound.setGain(-10);
 }
 
+void playWhenUserEnters() {
+  //underTheRainSound.unmute();
+  //backgroundSound.mute();
+  underTheRainSound.setGain(10.0);
+  backgroundSound.setGain(-10.0);
+}
+
+void playWhenUserExits() {
+  backgroundSound.setGain(10.0);
+  underTheRainSound.setGain(-10.0);
+  //backgroundSound.unmute();
+  //underTheRainSound.mute();
+}
+
+void updateSound() {
+  if (dropHitCount > 0) {
+     playWhenUserEnters();    
+  } else {
+     playWhenUserExits();    
+  }
+}
 
 void draw() {
   // update the cam
@@ -81,11 +106,8 @@ void draw() {
     
   userMap = context.userMap();
   
-  if (context.getNumberOfUsers() > 0) {
-     playWhenUserEnters();    
-  } else {
-     playWhenUserExits();    
-  }
+  updateSound();
+  
   // Filter out background
   /*
   if (context.getNumberOfUsers() > 0) {
@@ -199,16 +221,6 @@ void keyPressed()
   }
 }  
 
-void playWhenUserEnters() {
-  player.unmute();
-  backgroundSound.setGain(-10.0);
-}
-
-void playWhenUserExits() {
-  backgroundSound.setGain(10.0);
-  player.mute();
-}
-
 long dropCounter = 0;
 int numDrops = 2000;
 HashMap drops = new HashMap();
@@ -221,6 +233,7 @@ void setupRain() {
 
 void updateRain(){
   //loadPixels();
+  dropHitCount = 0;
   
   Object[] arr = drops.values().toArray();
   for (int i = 0; i < arr.length; i++) {
@@ -319,6 +332,7 @@ class Drop {
     //color c = userImage.pixels[(int)x + (int)y * w];
     //if (!isDroplet && (blue(c) != red(c) || red(c) != green(c))) {
     if (!isDroplet && userMap[((int)x >> 1) + ((int)y >> 1) * 640] != 0) {
+      dropHitCount++;
       createDroplets();      
       dieAfterDrawing = true;
       return;
