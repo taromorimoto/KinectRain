@@ -32,11 +32,20 @@ PImage img;
 PImage userImage = new PImage(640, 480);
 PGraphics pg;
 int dropHitCount = 0;
+int frameCount = 0;
+final int scale = 1;
+final boolean PIXELS = true; // true is pixel rendering, false is vector
+final boolean BW = false;    // true is black and white, false is color
+
+
+long dropCounter = 0;
+int numDrops = 10000;
+HashMap drops = new HashMap();
+
 
 void setup()
 {
-  size(1280, 960);
-  //size(640, 480);
+  size(640*scale, 480*scale);
   pg = createGraphics(width, height);
   //img = loadImage("helsinkiblackandwhite.jpg");
   
@@ -155,6 +164,8 @@ void draw() {
   
   updateRain();
   drawRain();
+  if (frameCount++ % 30 == 0)
+    println(frameRate);
 }
 
 // draw the skeleton with the selected joints
@@ -221,10 +232,6 @@ void keyPressed()
   }
 }  
 
-long dropCounter = 0;
-int numDrops = 2000;
-HashMap drops = new HashMap();
-
 void setupRain() {
   for (int i = 0; i < numDrops; i++) {
     new Drop();
@@ -248,13 +255,23 @@ void drawRain(){
   pg.fill(0, 150);
   pg.rect(0, 0, width, height);
   
+  if (PIXELS) {
+    pg.endDraw();
+    pg.loadPixels();
+  }
+
   Iterator i = drops.entrySet().iterator();  // Get an iterator
   while (i.hasNext()) {
     Map.Entry e = (Map.Entry)i.next();
     ((Drop)e.getValue()).draw();
   }
-  pg.endDraw();
-  //image(pg, 0, 0, width, height);
+  
+  if (PIXELS) {
+    pg.updatePixels();
+  } else {
+    pg.endDraw();
+  }
+
   image(pg, 0, 0);
 }
 
@@ -263,17 +280,18 @@ class Drop {
   boolean isDroplet = false;
   boolean dieAfterDrawing = false;
   int lifetime = (int)random(5, 15);
-  int size = (int)random(3*2, 15*2);
+  int size = (int)random(3*scale, 15*scale);
   float x = random(width);
   float y = random(-height);
   float prevX = x;
   float prevY = y;
-  PVector velocity = new PVector(random(1*2, 6*2), random(10*2, 30*2));
-  color col = color(255, 255, 255, random(50, 200));
+  PVector velocity = new PVector(random(1*scale, 6*scale), random(10*scale, 30*scale));
+  color col;
 
   Drop() {
     dropCounter++;
     id = dropCounter;
+    setupColor();
     drops.put(id, this);
   }
   Drop(float _x, float _y, boolean _isDroplet) {
@@ -283,10 +301,31 @@ class Drop {
     x = _x;
     y = _y;
     isDroplet = _isDroplet;
+    setupColor();
     drops.put(id, this);
   }
+  
+  void setupColor() {
+    if (BW) {
+      col = color(255, 255, 255, random(50, 200));
+    } else {
+      col = color(0, 0, map(x, 0, width, 100, 255), random(50, 200));
+    }
+  }
+  
+  void drawPixel(float fx, float fy, color c) {
+    int ix = round(fx);
+    int iy = round(fy);
+    if (ix < 0 || ix >= width || iy < 0 || iy >= height) return;
+    
+    pg.pixels[ix + iy * width] = c;
+  }
+  
+  void drawTrail(float xpos, float ypos, PVector trail, float dist, color c) {
+      drawPixel(xpos - trail.x * dist, ypos - trail.y * dist, c);
+  }
 
-  void draw() {
+  void drawVector() {
     pg.fill(col);
     if (isDroplet) {
       pg.noStroke();
@@ -294,8 +333,29 @@ class Drop {
     } else {
       pg.stroke(col);
       pg.strokeWeight(1);
-      //line(x, y, x - velocity.x, y - size);
       pg.line(x, y, prevX, prevY);
+    }
+  }
+  
+  void drawPixels() {
+    PVector trail = velocity.normalize(null);
+    if (isDroplet) {
+      drawPixel(x, y, col);
+      //if (size > 2)
+      //  drawPixel(x - trail.x, y - trail.y, col);
+    } else {
+      for (int i = 1; i < size; i++) {
+        drawTrail(x, y, trail, i, col);
+      }
+      drawPixel(x, y, col);
+    }
+  }
+  
+  void draw() {
+    if (PIXELS) {
+      drawPixels();
+    } else {
+      drawVector();
     }
     if (dieAfterDrawing) {
       die();
@@ -331,7 +391,8 @@ class Drop {
     // Check impact with silhouette
     //color c = userImage.pixels[(int)x + (int)y * w];
     //if (!isDroplet && (blue(c) != red(c) || red(c) != green(c))) {
-    if (!isDroplet && userMap[((int)x >> 1) + ((int)y >> 1) * 640] != 0) {
+    //if (!isDroplet && userMap[((int)x >> 1) + ((int)y >> 1) * 640] != 0) {
+    if (!isDroplet && userMap[(int)x + (int)y * 640] != 0) {
       dropHitCount++;
       createDroplets();      
       dieAfterDrawing = true;
