@@ -28,6 +28,7 @@ PVector com = new PVector();
 PVector com2d = new PVector();                                   
 
 int[] userMap;
+int[] depthMap;
 PImage img;
 PImage userImage = new PImage(640, 480);
 PGraphics pg;
@@ -35,7 +36,7 @@ int dropHitCount = 0;
 int frameCount = 0;
 final int scale = 1;
 final boolean PIXELS = true; // true is pixel rendering, false is vector
-final boolean BW = false;    // true is black and white, false is color
+final boolean BW = true;    // true is black and white, false is color
 
 
 long dropCounter = 0;
@@ -114,6 +115,7 @@ void draw() {
   context.update();
     
   userMap = context.userMap();
+  depthMap = context.depthMap();
   
   updateSound();
   
@@ -278,9 +280,10 @@ void drawRain(){
 class Drop {
   long id;
   boolean isDroplet = false;
+  boolean useDepth = false;
   boolean dieAfterDrawing = false;
   int lifetime = (int)random(5, 15);
-  int size = (int)random(3*scale, 15*scale);
+  int size = 0;
   float x = random(width);
   float y = random(-height);
   float prevX = x;
@@ -291,23 +294,30 @@ class Drop {
   Drop() {
     dropCounter++;
     id = dropCounter;
-    setupColor();
+    setup();
     drops.put(id, this);
   }
   Drop(float _x, float _y, boolean _isDroplet) {
     dropCounter++;
     id = dropCounter;
-    
-    x = _x;
-    y = _y;
+    setup();
+    prevX = x = _x;
+    prevX = y = _y;
     isDroplet = _isDroplet;
-    setupColor();
     drops.put(id, this);
+  }
+  
+  void setup() {
+    prevX = x = random(width);
+    prevY = y = random(-height/2);
+    size = (int)random(3*scale, 40*scale);
+    setupColor();
   }
   
   void setupColor() {
     if (BW) {
-      col = color(255, 255, 255, random(50, 200));
+      int c = (int)random(90, 255);
+      col = color(c, c);
     } else {
       col = color(0, 0, map(x, 0, width, 100, 255), random(50, 200));
     }
@@ -337,12 +347,28 @@ class Drop {
     }
   }
   
+  void drawToEdge(int xi, int yi, int intensity) {
+    if (yi < 0) return;
+    
+    int index = xi + yi * width;
+    int d = depthMap[index];
+    int u = userMap[index];
+    if (u > 0) {
+      //drawPixel(xi, yi, color(255, intensity));
+      drawToEdge(xi, yi-1, intensity + 20);
+    } else {
+      drawPixel(xi, yi, color(255));
+    }
+  }
+  
   void drawPixels() {
     PVector trail = velocity.normalize(null);
     if (isDroplet) {
-      drawPixel(x, y, col);
-      //if (size > 2)
-      //  drawPixel(x - trail.x, y - trail.y, col);
+      if (useDepth) {
+        drawToEdge((int)x, (int)y, 150);
+      } else {
+        drawPixel(x, y, col);
+      }
     } else {
       for (int i = 1; i < size; i++) {
         drawTrail(x, y, trail, i, col);
@@ -375,9 +401,9 @@ class Drop {
         return;
       }
       // Update face gravity
-      velocity.x *= 0.8;
+      velocity.x *= 0.9;
       if (velocity.y < 10) {
-        velocity.y += 1;
+        velocity.y += 0.5;
       }
     }
 
@@ -392,7 +418,8 @@ class Drop {
     //color c = userImage.pixels[(int)x + (int)y * w];
     //if (!isDroplet && (blue(c) != red(c) || red(c) != green(c))) {
     //if (!isDroplet && userMap[((int)x >> 1) + ((int)y >> 1) * 640] != 0) {
-    if (!isDroplet && userMap[(int)x + (int)y * 640] != 0) {
+    int opacity = (int)red(col);
+    if (!isDroplet && opacity > 120 && userMap[(int)x + (int)y * 640] != 0) {
       dropHitCount++;
       createDroplets();      
       dieAfterDrawing = true;
@@ -406,22 +433,33 @@ class Drop {
     createDroplet();
     createDroplet();
     createDroplet();
+    //createDroplet(true);
   }
   
   void createDroplet() {
+    createDroplet(false);
+  }
+  void createDroplet(boolean depth) {
     Drop droplet = new Drop(x, y, true);
-    droplet.size = (int)random(1, 3);
-    droplet.velocity.x = random(-4, 4);
-    droplet.velocity.y = random(5);
-    droplet.lifetime = (int)random(5, 10);
+    if (depth) {
+      droplet.useDepth = true;
+      droplet.size = 1;
+      droplet.velocity.x = 0;
+      droplet.velocity.y = 0.5;
+      droplet.lifetime = 5;
+    } else {
+      droplet.size = (int)random(1, 3);
+      droplet.velocity.x = random(-4, 4);
+      droplet.velocity.y = random(-5, 5);
+      droplet.lifetime = (int)random(5, 10);
+    }
   }
   
   void die() {
     if (isDroplet) {
       drops.remove(id);
     } else {
-      prevX = x = random(width);
-      prevY = y = random(-10);
+      setup();
       dieAfterDrawing = false;
     }
   }
